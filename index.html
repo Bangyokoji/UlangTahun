@@ -499,15 +499,18 @@
         /* ── RPG CHARACTER GUIDE ───────────────────────────────── */
         #rpg-guide {
             position: fixed;
-            bottom: 24px; right: 24px;
+            bottom: 16px; right: 16px;
             z-index: 9000;
             display: flex; flex-direction: column; align-items: flex-end;
-            gap: 10px;
+            gap: 8px;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.5s ease;
         }
         #rpg-guide.visible { opacity: 1; pointer-events: auto; }
+        /* Karakter bisa di-toggle */
+        #rpg-guide.minimized #rpg-sprite-wrap { opacity: 0.35; transform: scale(0.7); transform-origin: bottom right; }
+        #rpg-guide.minimized #rpg-dialog { display: none !important; }
 
         /* Dialog Box */
         #rpg-dialog {
@@ -558,24 +561,37 @@
 
         /* Pixel sprite container */
         #rpg-sprite-wrap {
-            width: 160px; height: auto;
+            width: 100px; height: auto;
             position: relative;
             cursor: pointer;
-            transition: transform 0.15s ease;
+            transition: transform 0.15s ease, opacity 0.3s ease;
             flex-shrink: 0;
             align-self: flex-end;
             animation: rpg-idle 2s ease-in-out infinite;
         }
-        #rpg-sprite-wrap:hover { animation: none; transform: translateY(-8px) scale(1.05); }
+        #rpg-sprite-wrap:hover { animation: none; transform: translateY(-6px) scale(1.05); }
         #rpg-sprite-wrap:active { animation: none; transform: scale(0.95); }
         #rpg-canvas { display: none; }
 
         #rpg-sprite-img {
-            width: 160px; height: auto;
+            width: 100px; height: auto;
             object-fit: contain;
             display: block;
-            filter: drop-shadow(0 0 12px rgba(197,164,126,0.5)) drop-shadow(0 4px 20px rgba(0,0,0,0.6));
+            filter: drop-shadow(0 0 8px rgba(197,164,126,0.4)) drop-shadow(0 4px 12px rgba(0,0,0,0.6));
         }
+
+        /* Toggle button */
+        #rpg-toggle {
+            position: fixed; bottom: 16px; right: 16px;
+            width: 28px; height: 28px;
+            background: rgba(0,0,0,0.7); border: 1px solid rgba(197,164,126,0.3);
+            border-radius: 50%; color: var(--accent); font-size: 10px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 9001; opacity: 0;
+            transition: opacity 0.3s, background 0.2s;
+        }
+        #rpg-toggle.visible { opacity: 1; }
+        #rpg-toggle:hover { background: rgba(197,164,126,0.15); }
 
         @keyframes rpg-idle {
             0%, 100% { transform: translateY(0px); }
@@ -668,18 +684,7 @@
         .uno-player-hand, .uno-ai-hand { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; min-height: 130px; align-items: flex-end; }
         .uno-pile { display: flex; align-items: center; justify-content: center; gap: 20px; min-height: 140px; }
 
-        /* ── BUKU TAMU ──────────────────────────────────────────── */
-        #guestbook-section { background: #0a0a0a; }
-        .guestbook-wrap { max-width: 700px; margin: 0 auto; background: rgba(255,255,255,0.02); border: 1px solid rgba(197,164,126,0.15); border-radius: 4px; overflow: hidden; }
-        .guestbook-entry { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); animation: entryIn 0.4s ease; }
-        @keyframes entryIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .guestbook-entry:last-child { border-bottom: none; }
-        .guestbook-name { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; font-weight: 900; }
-        .guestbook-msg { font-family: 'Playfair Display', serif; font-style: italic; color: rgba(255,255,255,0.8); font-size: 15px; line-height: 1.6; }
-        .guestbook-time { font-size: 9px; color: rgba(255,255,255,0.25); margin-top: 6px; letter-spacing: 0.1em; }
-        .guestbook-input { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.1); color: #fff; outline: none; width: 100%; padding: 10px 0; font-size: 14px; font-family: 'Inter', sans-serif; transition: border-color 0.3s; }
-        .guestbook-input:focus { border-color: rgba(197,164,126,0.5); }
-        .guestbook-input::placeholder { color: rgba(255,255,255,0.2); }
+
     </style>
 </head>
 <body>
@@ -702,11 +707,13 @@
             <img id="rpg-sprite-img"
                 src="https://raw.githubusercontent.com/Bangyokoji/UlangTahun/0bba507b10361e6bfb6c5f8c59b6995dcec8dee2/download_20260607_082820_0000.gif"
                 alt="Karakter"
-                style="width:160px;height:auto;object-fit:contain;display:block;">
+                style="width:100px;height:auto;object-fit:contain;display:block;">
             <canvas id="rpg-canvas" width="64" height="64" style="display:none;"></canvas>
             <div id="rpg-level">Lv.18</div>
         </div>
     </div>
+    <!-- Tombol sembunyikan/tampilkan karakter -->
+    <button id="rpg-toggle" title="Sembunyikan karakter">✕</button>
 
     <div id="lock-screen">
         <div class="absolute inset-0 z-0" id="lockParticles"></div>
@@ -714,15 +721,23 @@
             <video autoplay muted loop playsinline class="w-full h-full object-cover filter grayscale blur-sm opacity-30 scale-110">
                 <source src="https://raw.githubusercontent.com/Bangyokoji/UlangTahun/cea4afe5e3c51f4b6a4c6c9aa214eb8efaed2009/Try%20Aesthetic%20packing%20list%20ideas%20that%20are%20perfect%20for%20beginners%20who%20still%20want%20an%20impressive%20result%20for%20ideas%20worth%20saving%20right%20now%20-%20Pin-59320920087821247.mp4" type="video/mp4">
             </video>
-            <div class="absolute inset-0 bg-black/70"></div>
+            <div class="absolute inset-0 bg-black/75"></div>
         </div>
 
         <div class="text-center px-6 z-10 relative" id="lock-content">
-            <h2 class="font-serif italic text-accent tracking-[0.8em] mb-12 text-[10px] uppercase opacity-70">Private Residence Access</h2>
-            <input type="password" id="passInput" placeholder="KODE JADIAN" 
-                class="bg-transparent border-b border-zinc-800 text-center py-4 outline-none w-80 tracking-[1em] text-sm focus:border-accent transition-all duration-700 placeholder:tracking-widest placeholder:opacity-30 rounded-none"
-                autocomplete="off">
-            <p class="text-[9px] mt-10 text-zinc-600 tracking-widest uppercase">The date we started everything</p>
+            <div class="mb-8">
+                <p class="font-serif italic text-accent text-2xl mb-2">XVIII</p>
+                <div class="w-16 h-px bg-accent/30 mx-auto"></div>
+            </div>
+            <h2 class="font-serif italic text-zinc-400 tracking-[0.4em] mb-10 text-[11px] uppercase">Private Residence Access</h2>
+            <div class="relative inline-block">
+                <input type="password" id="passInput" placeholder="Masukkan Kode..." 
+                    class="bg-transparent border border-zinc-700 text-center py-5 px-8 outline-none w-80 tracking-[0.5em] text-base focus:border-accent transition-all duration-700 placeholder:tracking-widest placeholder:opacity-30 placeholder:text-sm rounded-none"
+                    autocomplete="off">
+                <div class="absolute inset-0 pointer-events-none border border-accent/0 transition-all duration-700" id="passGlow"></div>
+            </div>
+            <p class="text-[9px] mt-8 text-zinc-600 tracking-[0.3em] uppercase">Tanggal kita mulai semuanya</p>
+            <p class="text-[8px] mt-3 text-zinc-700 tracking-widest italic">format: DDMMYY</p>
         </div>
     </div>
 
@@ -839,31 +854,7 @@
             </div>
         </section>
 
-        <section class="min-h-screen flex flex-col items-center justify-center px-10 py-40 bg-black/40 border-t border-zinc-900" id="voice-section">
-            <div class="text-center mb-24" id="voiceHeader">
-                <p class="text-accent tracking-[0.4em] text-[10px] uppercase mb-4 italic opacity-70">Audio Memoir #01</p>
-                <h3 class="font-serif italic text-5xl md:text-6xl">Dengerin ini ya...</h3>
-            </div>
-
-            <div id="voice-ui" class="pulse-container opacity-0 scale-90">
-                <div class="pulse-ring"></div>
-                <div class="pulse-ring" style="animation-delay: 0.5s"></div>
-                <div class="pulse-ring" style="animation-delay: 1s"></div>
-                <button id="playVoiceBtn" class="relative z-10 w-24 h-24 rounded-full border border-accent/30 flex items-center justify-center group hover:bg-accent/10 active:scale-95 transition-all outline-none">
-                    <i id="playIcon" class="fas fa-play text-accent text-2xl ml-1 transition-transform group-hover:scale-110"></i>
-                </button>
-            </div>
-
-            <div class="mt-24 max-w-2xl text-center h-28 flex items-center justify-center" id="subtitlesWrapper">
-                <p id="subtitles" class="font-serif italic text-2xl md:text-3xl text-zinc-300 leading-snug"></p>
-            </div>
-
-            <div class="mt-32 opacity-0 text-center translate-y-10" id="finalGreeting">
-                <p class="font-hand text-6xl text-accent">Selamat Ulang Tahun, Sayang.</p>
-                <p class="mt-7 text-[9px] tracking-[0.5em] text-zinc-700 italic uppercase">Forever with you — 20.01.2026</p>
-            </div>
-        </section>
-
+        <!-- Newspaper section follows -->
         <!-- ══════════════════════════════════════════════════════
              NEWSPAPER FRONT PAGE
         ═══════════════════════════════════════════════════════ -->
@@ -1190,10 +1181,16 @@
 
         <!-- UNO RIGGED GAME -->
         <section class="py-32 px-6 border-t border-zinc-900" id="uno-section">
-            <div class="text-center mb-16">
+            <div class="text-center mb-12">
                 <p class="text-accent tracking-[0.4em] text-[10px] uppercase mb-4 italic opacity-70">Mini Game</p>
                 <h3 class="font-serif italic text-4xl md:text-5xl mb-4">UNO Challenge</h3>
-                <p class="text-zinc-500 text-sm">Coba kalahkan aku kalau bisa... 😈</p>
+                <p class="text-zinc-500 text-sm mb-8">Coba kalahkan aku kalau bisa... 😈</p>
+                <!-- Cara Main -->
+                <div class="inline-flex flex-wrap gap-4 justify-center text-[10px] text-zinc-600 tracking-widest uppercase mb-2">
+                    <span>🟥 Cocokkan warna</span>
+                    <span>🔢 atau angka</span>
+                    <span>📥 Kalau tidak ada, ambil kartu</span>
+                </div>
             </div>
             <div class="max-w-2xl mx-auto">
                 <div class="mb-4">
@@ -1222,31 +1219,33 @@
             </div>
         </section>
 
-        <!-- BUKU TAMU DIGITAL -->
-        <section class="py-32 px-6 border-t border-zinc-900" id="guestbook-section">
-            <div class="text-center mb-16">
-                <p class="text-accent tracking-[0.4em] text-[10px] uppercase mb-4 italic opacity-70">Dari Semua Yang Sayang Kamu</p>
-                <h3 class="font-serif italic text-4xl md:text-5xl mb-4">Buku Tamu</h3>
-                <p class="text-zinc-500 text-sm">Tinggalkan pesan buat si cantik yang ultah 🎂</p>
-            </div>
-            <div class="guestbook-wrap">
-                <div class="p-6 border-b border-zinc-800">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <input class="guestbook-input" id="gbName" placeholder="Nama kamu..." maxlength="30">
-                        <input class="guestbook-input" id="gbMsg" placeholder="Pesan buat dia..." maxlength="150">
-                    </div>
-                    <div class="flex justify-between items-center mt-4">
-                        <p class="text-[9px] text-zinc-600 tracking-widest">Pesan tersimpan permanen ✦</p>
-                        <button class="uno-btn" id="gbSubmit">Kirim Pesan ♡</button>
-                    </div>
-                </div>
-                <div id="gbList" class="max-h-96 overflow-y-auto">
-                    <div class="p-8 text-center text-zinc-700 text-sm italic" id="gbEmpty">Belum ada pesan... jadilah yang pertama! 💌</div>
-                </div>
-            </div>
-        </section>
-
     </main>
+
+    <!-- ══ PESAN SUARA — Paling Terakhir ══ -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-10 py-40 bg-black/40 border-t border-zinc-900" id="voice-section">
+        <div class="text-center mb-24" id="voiceHeader">
+            <p class="text-accent tracking-[0.4em] text-[10px] uppercase mb-4 italic opacity-70">Audio Memoir #01</p>
+            <h3 class="font-serif italic text-5xl md:text-6xl">Dengerin ini ya...</h3>
+        </div>
+
+        <div id="voice-ui" class="pulse-container opacity-0 scale-90">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring" style="animation-delay: 0.5s"></div>
+            <div class="pulse-ring" style="animation-delay: 1s"></div>
+            <button id="playVoiceBtn" class="relative z-10 w-24 h-24 rounded-full border border-accent/30 flex items-center justify-center group hover:bg-accent/10 active:scale-95 transition-all outline-none">
+                <i id="playIcon" class="fas fa-play text-accent text-2xl ml-1 transition-transform group-hover:scale-110"></i>
+            </button>
+        </div>
+
+        <div class="mt-24 max-w-2xl text-center h-28 flex items-center justify-center" id="subtitlesWrapper">
+            <p id="subtitles" class="font-serif italic text-2xl md:text-3xl text-zinc-300 leading-snug"></p>
+        </div>
+
+        <div class="mt-32 opacity-0 text-center translate-y-10" id="finalGreeting">
+            <p class="font-hand text-6xl text-accent">Selamat Ulang Tahun, Sayang.</p>
+            <p class="mt-7 text-[9px] tracking-[0.5em] text-zinc-700 italic uppercase">Forever with you — 20.01.2026</p>
+        </div>
+    </section>
 
     <audio id="mainAudio" loop></audio>
     <audio id="voiceAudio" src="https://raw.githubusercontent.com/Bangyokoji/UlangTahun/a71374fc44b978450c1fbd9d8d67c52d87640d24/rekamann.aac" preload="auto"></audio>
@@ -1893,11 +1892,33 @@
                 if (main && !main.classList.contains('invisible')) {
                     setTimeout(() => {
                         guide.classList.add('visible');
+                        const toggle = document.getElementById('rpg-toggle');
+                        if (toggle) toggle.classList.add('visible');
                         triggerDialog('hero-section');
                     }, 2800);
                     observer.disconnect();
                 }
             });
+
+            // Toggle button logic
+            const toggleBtn = document.getElementById('rpg-toggle');
+            let rpgMinimized = false;
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    rpgMinimized = !rpgMinimized;
+                    if (rpgMinimized) {
+                        guide.classList.add('minimized');
+                        toggleBtn.textContent = '♡';
+                        toggleBtn.title = 'Tampilkan karakter';
+                        toggleBtn.style.bottom = '16px';
+                        toggleBtn.style.right = '16px';
+                    } else {
+                        guide.classList.remove('minimized');
+                        toggleBtn.textContent = '✕';
+                        toggleBtn.title = 'Sembunyikan karakter';
+                    }
+                });
+            }
             observer.observe(document.getElementById('main-content'), { attributes: true, attributeFilter: ['class'] });
 
             // Scroll detection
@@ -1987,57 +2008,34 @@
         // ── UNO RIGGED GAME ────────────────────────────────────────
         (function initUno() {
             const COLORS = ['red','blue','green','yellow'];
-            const SPECIALS = ['Skip','Reverse','+2'];
-            const NUMS = ['0','1','2','3','4','5','6','7','8','9'];
+            const NUMS   = ['0','1','2','3','4','5','6','7','8','9'];
+            const SPECIALS = ['Skip','+2'];
 
-            function randomColor() { return COLORS[Math.floor(Math.random()*COLORS.length)]; }
-            function randomNum()   { return NUMS[Math.floor(Math.random()*NUMS.length)]; }
-
-            function makeCard(color, value) { return { color, value }; }
+            const rand = arr => arr[Math.floor(Math.random()*arr.length)];
+            const makeCard = (color, value) => ({ color, value });
 
             function genDeck() {
-                let deck = [];
+                let d = [];
                 COLORS.forEach(c => {
-                    NUMS.forEach(n => deck.push(makeCard(c, n)));
-                    SPECIALS.forEach(s => deck.push(makeCard(c, s)));
+                    NUMS.forEach(n => d.push(makeCard(c,n)));
+                    SPECIALS.forEach(s => d.push(makeCard(c,s)));
                 });
-                deck.push(makeCard('black','+4'));
-                deck.push(makeCard('black','+4'));
-                deck.push(makeCard('black','Wild'));
-                deck.push(makeCard('black','Wild'));
-                return deck.sort(() => Math.random()-0.5);
+                d.push(makeCard('black','+4'));
+                d.push(makeCard('black','+4'));
+                return d.sort(() => Math.random()-0.5);
             }
 
             let playerHand=[], aiHand=[], topCard=null, gameOver=false, playerTurn=true, deck=[];
+
             const msgs = {
-                start: 'Klik kartu kamu untuk main! Tapi... aku udah tahu hasilnya 😏',
-                noPlay: 'Kartumu nggak bisa dimainkan! Ambil kartu dulu ya 😄',
-                playerPlay: ['Hmm, bagus... tapi belum cukup 😈','Oooh, bold move! Tapi nggak bakal berhasil 😂','Wah berani! Tapi sia-sia~'],
-                aiPlay: ['Giliranku! 😎','Ups, giliran aku ya...','Hehehe~'],
-                playerWin: '...Tunggu, ini nggak seharusnya terjadi 😭 Kamu curang ya!?',
-                aiWin: ['Hehe, aku menang lagi! Di game ini kamu selalu kalah... tapi di hatiku kamu selalu juara 💛','Maaf ya sayang, di sini aku yang menang 😘 Di kehidupan nyata kamu yang selalu menang di hatiku~','Kalah lagi deh! Udah berapa kali ini? 😂 Tapi kamu tetap yang paling aku sayang!'],
+                start:      'Klik kartu kamu untuk main! Cocokkan warna atau angka dengan kartu di tengah 🎮',
+                noPlay:     'Kartu ini tidak cocok! Coba yang lain atau ambil kartu 😄',
+                playerPlay: ['Hmm, bagus... tapi belum cukup 😈','Wah berani! Tapi nggak bakal berhasil~','Menarik pilihannya!'],
+                aiPlay:     ['Giliran aku! 😎','Hehehe, giliranku~','Aku main ya! 😘'],
+                aiWin:      ['Hehe, aku menang! Tapi di hatiku kamu selalu juara 💛',
+                             'Maaf sayang, di sini aku yang menang 😘 Tapi kamu menang di hatiku~',
+                             'Menang lagi! Tapi kamu tetap yang paling aku sayang! 💕'],
             };
-
-            function cardLabel(c) {
-                if (c.color==='black') return c.value;
-                return c.value;
-            }
-
-            function renderCard(c, clickable=false, idx=null) {
-                const div = document.createElement('div');
-                div.className = `uno-card ${c.color}`;
-                div.innerHTML = `<span class="corner tl">${cardLabel(c)}</span>${cardLabel(c)}<span class="corner br">${cardLabel(c)}</span>`;
-                if (clickable && idx !== null) {
-                    div.onclick = () => playerPlay(idx);
-                }
-                return div;
-            }
-
-            function renderBackCard() {
-                const div = document.createElement('div');
-                div.className = 'uno-card back';
-                return div;
-            }
 
             function setMsg(txt) {
                 const el = document.getElementById('uno-msg');
@@ -2050,35 +2048,51 @@
                 return card.color === topCard.color || card.value === topCard.value;
             }
 
-            // AI selalu punya kartu yang bisa dimainkan (rigged)
+            // AI selalu bisa main (rigged!)
             function aiGetPlayable() {
-                // Cari kartu yang bisa dimainkan
-                let playable = aiHand.filter(c => canPlay(c));
-                if (playable.length > 0) return playable[0];
-                // Kalau tidak ada, tambah kartu rigged yang pasti bisa
-                const rigged = makeCard(topCard ? topCard.color : randomColor(), topCard ? topCard.value : randomNum());
+                const playable = aiHand.filter(c => canPlay(c));
+                if (playable.length) return playable[0];
+                const rigged = makeCard(topCard ? topCard.color : rand(COLORS), topCard ? topCard.value : rand(NUMS));
                 aiHand.push(rigged);
                 return rigged;
             }
 
+            function cardHTML(c) {
+                const lbl = c.value;
+                return `<span class="corner tl">${lbl}</span>${lbl}<span class="corner br">${lbl}</span>`;
+            }
+
+            function renderCard(c, clickable=false, idx=null) {
+                const div = document.createElement('div');
+                div.className = `uno-card ${c.color}`;
+                div.innerHTML = cardHTML(c);
+                if (clickable && idx !== null) div.onclick = () => playerPlay(idx);
+                return div;
+            }
+
             function renderAll() {
-                // Player hand
+                // Tangan pemain
                 const ph = document.getElementById('unoPlayerHand');
                 if (ph) {
                     ph.innerHTML = '';
                     playerHand.forEach((c, i) => ph.appendChild(renderCard(c, playerTurn && !gameOver, i)));
                 }
-                // AI hand (tampilkan kartu balik)
+                // Tangan AI (kartu tertutup, max tampil 8)
                 const ah = document.getElementById('unoAiHand');
                 if (ah) {
                     ah.innerHTML = '';
-                    aiHand.forEach(() => ah.appendChild(renderBackCard()));
+                    const show = Math.min(aiHand.length, 8);
+                    for (let i=0; i<show; i++) {
+                        const d = document.createElement('div');
+                        d.className = 'uno-card back';
+                        ah.appendChild(d);
+                    }
                 }
-                // Top card
+                // Kartu teratas
                 const tc = document.getElementById('unoTopCard');
                 if (tc && topCard) {
                     tc.className = `uno-card ${topCard.color}`;
-                    tc.innerHTML = `<span class="corner tl">${cardLabel(topCard)}</span>${cardLabel(topCard)}<span class="corner br">${cardLabel(topCard)}</span>`;
+                    tc.innerHTML = cardHTML(topCard);
                 }
             }
 
@@ -2089,26 +2103,24 @@
 
                 topCard = card;
                 playerHand.splice(idx, 1);
-                setMsg(msgs.playerPlay[Math.floor(Math.random()*msgs.playerPlay.length)]);
+                setMsg(rand(msgs.playerPlay));
                 renderAll();
 
-                // Cek menang player (rigged: kalau playerHand.length === 0, tambah kartu lagi)
+                // Rigged: kalau mau menang, tambah kartu dulu
                 if (playerHand.length === 0) {
-                    // Rigged: paksa tambah kartu ke player
-                    for (let i=0; i<3; i++) playerHand.push(makeCard(randomColor(), randomNum()));
+                    for (let i=0; i<3; i++) playerHand.push(makeCard(rand(COLORS), rand(NUMS)));
                     renderAll();
-                    setMsg('UNO!! Tapi tunggu... ada kartu yang ketinggalan 😂 (+3 kartu)');
+                    setMsg('UNO!! Eh tunggu, ada kartu yang ketinggalan 😂 (+3 kartu)');
                     return;
                 }
 
-                // Handle specials
-                if (card.value === 'Skip' || card.value === 'Reverse') {
-                    setMsg('Skip! Tapi tetap giliran AI 😏');
-                    setTimeout(aiTurn, 1000);
-                } else if (card.value === '+2') {
-                    for (let i=0; i<2; i++) playerHand.push(deck.length ? deck.pop() : makeCard(randomColor(), randomNum()));
-                    setMsg('+2 ke... kamu sendiri? Eh tunggu aku yang harusnya dapat 😂 Nggak papa, ambil aja~');
+                if (card.value === '+2') {
+                    for (let i=0; i<2; i++) playerHand.push(deck.length ? deck.pop() : makeCard(rand(COLORS), rand(NUMS)));
+                    setMsg('+2 malah kamu yang dapat! 😂 Giliran AI...');
                     setTimeout(() => { renderAll(); setTimeout(aiTurn, 800); }, 500);
+                } else if (card.value === 'Skip') {
+                    setMsg('Skip! Tapi AI tetap jalan 😏');
+                    setTimeout(aiTurn, 1000);
                 } else {
                     playerTurn = false;
                     setTimeout(aiTurn, 1200);
@@ -2118,43 +2130,38 @@
             function aiTurn() {
                 if (gameOver) return;
                 playerTurn = false;
-
                 setTimeout(() => {
                     const card = aiGetPlayable();
-                    const idx = aiHand.indexOf(card);
-                    if (idx > -1) aiHand.splice(idx, 1);
+                    aiHand.splice(aiHand.indexOf(card), 1);
                     topCard = card;
-                    setMsg(msgs.aiPlay[Math.floor(Math.random()*msgs.aiPlay.length)]);
+                    setMsg(rand(msgs.aiPlay));
                     renderAll();
 
-                    // Cek AI menang
                     if (aiHand.length === 0) {
                         gameOver = true;
-                        const winMsg = msgs.aiWin[Math.floor(Math.random()*msgs.aiWin.length)];
-                        setMsg('UNO!! ... ' + winMsg);
+                        setMsg('UNO!! ... ' + rand(msgs.aiWin));
                         return;
                     }
 
-                    // Handle specials AI
                     if (card.value === '+4') {
-                        for (let i=0; i<4; i++) playerHand.push(deck.length ? deck.pop() : makeCard(randomColor(), randomNum()));
-                        setMsg('Wild +4!! Kamu dapat 4 kartu tambahan 😈 Maaf ya hehe~');
+                        for (let i=0; i<4; i++) playerHand.push(deck.length ? deck.pop() : makeCard(rand(COLORS), rand(NUMS)));
+                        setMsg('Wild +4!! Kamu dapat 4 kartu tambahan 😈 Maaf ya~');
                         renderAll();
-                        setTimeout(() => { playerTurn = true; }, 1000);
+                        setTimeout(() => { playerTurn = true; renderAll(); }, 1200);
                     } else if (card.value === '+2') {
-                        for (let i=0; i<2; i++) playerHand.push(deck.length ? deck.pop() : makeCard(randomColor(), randomNum()));
-                        setMsg('+2 buat kamu! 😘 Giliran kamu lagi ya~');
+                        for (let i=0; i<2; i++) playerHand.push(deck.length ? deck.pop() : makeCard(rand(COLORS), rand(NUMS)));
+                        setMsg('+2 buat kamu! 😘 Giliran kamu lagi~');
                         renderAll();
-                        setTimeout(() => { playerTurn = true; }, 1000);
+                        setTimeout(() => { playerTurn = true; renderAll(); }, 1000);
                     } else if (card.value === 'Skip') {
                         setMsg('Skip! Giliranmu diskip 😜 AI main lagi~');
                         setTimeout(aiTurn, 1200);
                     } else {
                         playerTurn = true;
-                        setMsg('Giliran kamu! Pilih kartu yang bisa dimainkan~');
+                        setMsg('Giliran kamu! Pilih kartu yang cocok warna atau angkanya~');
                     }
                     renderAll();
-                }, 800);
+                }, 900);
             }
 
             function startGame() {
@@ -2163,99 +2170,25 @@
                 aiHand = [];
                 gameOver = false;
                 playerTurn = true;
-
-                for (let i=0; i<7; i++) {
-                    playerHand.push(deck.pop());
-                    aiHand.push(deck.pop());
-                }
-                // Pastikan AI selalu punya 1 lebih banyak supaya susah menang
-                aiHand.push(deck.pop());
-
-                // Top card: pilih kartu angka biasa
+                for (let i=0; i<7; i++) { playerHand.push(deck.pop()); aiHand.push(deck.pop()); }
+                aiHand.push(deck.pop()); // AI mulai dengan 1 ekstra (rigged)
                 do { topCard = deck.pop(); } while (topCard.color === 'black');
-
                 setMsg(msgs.start);
                 renderAll();
             }
 
-            const drawBtn = document.getElementById('unoDrawBtn');
+            const drawBtn    = document.getElementById('unoDrawBtn');
             const restartBtn = document.getElementById('unoRestartBtn');
             if (drawBtn) drawBtn.onclick = () => {
                 if (!playerTurn || gameOver) return;
-                playerHand.push(deck.length ? deck.pop() : makeCard(randomColor(), randomNum()));
-                setMsg('Kamu ambil kartu... semoga beruntung! 😄');
+                playerHand.push(deck.length ? deck.pop() : makeCard(rand(COLORS), rand(NUMS)));
+                setMsg('Kamu ambil kartu... semoga beruntung! 😄 Giliran AI...');
                 renderAll();
-                // Setelah draw, AI tetap dapat keuntungan
-                setTimeout(aiTurn, 1000);
                 playerTurn = false;
+                setTimeout(aiTurn, 1000);
             };
             if (restartBtn) restartBtn.onclick = startGame;
-
             startGame();
-        })();
-
-        // ── BUKU TAMU DIGITAL ──────────────────────────────────────
-        (function initGuestbook() {
-            const KEY = 'guestbook-entries';
-
-            async function loadEntries() {
-                try {
-                    const result = await window.storage.get(KEY, true);
-                    return result ? JSON.parse(result.value) : [];
-                } catch(e) { return []; }
-            }
-
-            async function saveEntries(entries) {
-                try {
-                    await window.storage.set(KEY, JSON.stringify(entries), true);
-                } catch(e) { console.log('Storage error:', e); }
-            }
-
-            function renderEntries(entries) {
-                const list = document.getElementById('gbList');
-                const empty = document.getElementById('gbEmpty');
-                if (!list) return;
-                if (entries.length === 0) {
-                    if (empty) empty.style.display = 'block';
-                    return;
-                }
-                if (empty) empty.style.display = 'none';
-                list.innerHTML = '';
-                [...entries].reverse().forEach(e => {
-                    const div = document.createElement('div');
-                    div.className = 'guestbook-entry';
-                    div.innerHTML = `
-                        <div class="guestbook-name">◆ ${e.name}</div>
-                        <div class="guestbook-msg">"${e.msg}"</div>
-                        <div class="guestbook-time">${e.time}</div>
-                    `;
-                    list.appendChild(div);
-                });
-            }
-
-            async function init() {
-                const entries = await loadEntries();
-                renderEntries(entries);
-
-                const submitBtn = document.getElementById('gbSubmit');
-                if (submitBtn) submitBtn.onclick = async () => {
-                    const nameEl = document.getElementById('gbName');
-                    const msgEl  = document.getElementById('gbMsg');
-                    const name = nameEl ? nameEl.value.trim() : '';
-                    const msg  = msgEl  ? msgEl.value.trim()  : '';
-                    if (!name || !msg) { alert('Isi nama dan pesan dulu ya! 💌'); return; }
-
-                    const now = new Date();
-                    const time = now.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
-                    const entries = await loadEntries();
-                    entries.push({ name, msg, time });
-                    await saveEntries(entries);
-                    renderEntries(entries);
-                    if (nameEl) nameEl.value = '';
-                    if (msgEl)  msgEl.value  = '';
-                };
-            }
-            init();
         })();
 
     </script>
